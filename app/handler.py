@@ -1,9 +1,9 @@
 import asyncio
 
 from aiogram import Bot, Dispatcher
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
-from aiogram.types import (Message, CallbackQuery, InputMediaPhoto, FSInputFile, InlineKeyboardMarkup,
-                           InlineKeyboardButton)
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, FSInputFile
 
 from app import keyboards as kb
 from app.google.google_auth import get_row
@@ -44,19 +44,37 @@ async def callback_handler(callback: CallbackQuery):
     if callback.data in ['На Грибоедова', 'Юсуповский сад', 'На Восстания',
                          'На Фонтанке', 'На Московском', 'На Вознесенском']:
         point = callback.data
-        await callback.message.edit_text(texts[point],
-                                         reply_markup=kb.point_info)
+        if users.get(uid):
+            if users[uid].get('msg_photo'):
+                try:
+                    for msg_id in users[uid]['msg_photo']:
+                        await bot.delete_message(callback.message.chat.id, msg_id)
+                except Exception:
+                    pass
+            if users[uid].get('msg_text'):
+                try:
+                    await bot.delete_message(callback.message.chat.id, users[uid]['msg_text'])
+                except Exception:
+                    pass
+        try:
+            await callback.message.edit_text(texts[point],
+                                            reply_markup=kb.point_info)
+        except TelegramBadRequest:
+            pass
+
         users[uid] = {
             'index': 0,
             'point': point,
+            'categories': [],
             'captions': [],
             'links_list': [],
             'msg_photo': None,  # ID сообщения с фото
             'msg_text': None  # ID сообщения с текстом
         }
-        users[uid]['captions'], users[uid]['links_list'] = get_row(point)
+        users[uid]['categories'], users[uid]['captions'], users[uid]['links_list'] = get_row(point)
 
     if callback.data in {'rooms', 'back', 'next'}:
+        await callback.message.delete()
         if not users[uid].get('links_list') and not users[uid].get('captions'):
             await callback.message.answer('Нет информации для выбранного отеля\n\nВыберите другой отель',
                                           reply_markup=kb.points)
@@ -71,7 +89,8 @@ async def callback_handler(callback: CallbackQuery):
 
         if users[uid].get('msg_photo'):
             try:
-                await bot.delete_message(callback.message.chat.id, users[uid]['msg_photo'])
+                for msg_id in users[uid]['msg_photo']:
+                    await bot.delete_message(callback.message.chat.id, msg_id)
             except Exception:
                 pass
         if users[uid].get('msg_text'):
@@ -80,12 +99,12 @@ async def callback_handler(callback: CallbackQuery):
             except Exception:
                 pass
 
+        text = users[uid]['categories'][index] + '\n\n' + users[uid]['captions'][index]
         msg_photo = await callback.message.answer_media_group(media_group)
-        msg_text = await callback.message.answer(users[uid]['captions'][index],
-                                                 reply_markup=kb.pagination(index, len(users[uid]['captions']),
-                                                                            users[uid]['point']))
+        msg_text = await callback.message.answer(text, reply_markup=kb.pagination(index, len(users[uid]['captions']),
+                                                                                  users[uid]['point']))
 
-        users[uid]['msg_photo'] = msg_photo[0].message_id if msg_photo else None
+        users[uid]['msg_photo'] = [msg.message_id for msg in msg_photo] if msg_photo else []
         users[uid]['msg_text'] = msg_text.message_id
 
     elif callback.data == 'geo':
@@ -95,7 +114,19 @@ async def callback_handler(callback: CallbackQuery):
         await callback.message.answer('Вот ссылка для бронирования: \n'
                                       '*Ссылка*')
     elif callback.data == 'main_menu':
-        await callback.message.edit_text('Вернуться к выбору отеля', reply_markup=kb.points)
+        if users.get(uid):
+            if users[uid].get('msg_photo'):
+                try:
+                    for msg_id in users[uid]['msg_photo']:
+                        await bot.delete_message(callback.message.chat.id, msg_id)
+                except Exception:
+                    pass
+            if users[uid].get('msg_text'):
+                try:
+                    await bot.delete_message(callback.message.chat.id, users[uid]['msg_text'])
+                except Exception:
+                    pass
+        await callback.message.answer('Вернуться к выбору отеля', reply_markup=kb.points)
 
 
 async def main():
