@@ -1,4 +1,3 @@
-import asyncio
 import re
 
 import gspread
@@ -42,6 +41,3 @@ def transform_google_drive_link(link: str) -> str:
         file_id = match.group(1)
         return f"https://drive.google.com/uc?export=view&id={file_id}"
     return link
-
-# link = 'https://drive.google.com/file/d/1xijx00oyfxivpjT_9baWUlcgAVnR2t2L/view?usp=drive_link'
-# print(transform_google_drive_link(link))
