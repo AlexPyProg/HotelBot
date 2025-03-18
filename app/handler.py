@@ -42,7 +42,8 @@ async def callback_handler(callback: CallbackQuery):
     print(callback.data)
     await callback.answer('')
     uid = callback.from_user.id
-    if callback.data in ['На Грибоедова', 'Юсуповский сад', 'На Восстания', 'На Фонтанке', 'На Московском', 'На Вознесенском']:
+    if callback.data in ['На Грибоедова', 'Юсуповский сад', 'На Восстания',
+                         'На Фонтанке', 'На Московском', 'На Вознесенском']:
         point = callback.data
         if users.get(uid):
             if users[uid].get('msg_photo'):
@@ -139,4 +140,3 @@ async def callback_handler(callback: CallbackQuery):
 
 async def main():
     await dp.start_polling(bot)
-    
