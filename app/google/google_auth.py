@@ -15,7 +15,8 @@ client = gspread.authorize(creds)
 def get_row(sheet_name):
     sheet = client.open_by_key(SHEET_ID).worksheet(sheet_name)
     data = sheet.get_all_values()
-    data = data[3:]
+    data = data[2:]
+    print(data)
     all_links = []
     categories = []
     captions = []
@@ -25,9 +26,8 @@ def get_row(sheet_name):
             categories.append(row[0])
             captions.append(row[1])
             for link in row[2:]:
-                if link.startswith('https://drive.google.com/file/d/'):
-                    link = transform_google_drive_link(link)
-                    links.append(link)
+                link = transform_google_drive_link(link)
+                links.append(link)
             if links:
                 all_links.append(links)
         except IndexError:

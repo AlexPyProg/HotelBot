@@ -39,10 +39,10 @@ async def start(message: Message):
 
 @dp.callback_query()
 async def callback_handler(callback: CallbackQuery):
+    print(callback.data)
     await callback.answer('')
     uid = callback.from_user.id
-    if callback.data in ['На Грибоедова', 'Юсуповский сад', 'На Восстания',
-                         'На Фонтанке', 'На Московском', 'На Вознесенском']:
+    if callback.data in ['На Грибоедова', 'Юсуповский сад', 'На Восстания', 'На Фонтанке', 'На Московском', 'На Вознесенском']:
         point = callback.data
         if users.get(uid):
             if users[uid].get('msg_photo'):
@@ -56,11 +56,6 @@ async def callback_handler(callback: CallbackQuery):
                     await bot.delete_message(callback.message.chat.id, users[uid]['msg_text'])
                 except Exception:
                     pass
-        try:
-            await callback.message.edit_text(texts[point],
-                                            reply_markup=kb.point_info)
-        except TelegramBadRequest:
-            pass
 
         users[uid] = {
             'index': 0,
@@ -71,22 +66,34 @@ async def callback_handler(callback: CallbackQuery):
             'msg_photo': None,  # ID сообщения с фото
             'msg_text': None  # ID сообщения с текстом
         }
+
+        try:
+            msg_text = await callback.message.edit_text(texts[point],
+                                                        reply_markup=kb.point_info)
+            users[uid]['msg_text'] = msg_text.message_id
+
+        except TelegramBadRequest:
+            msg_text = await callback.message.answer(texts[point],
+                                                     reply_markup=kb.point_info)
+            users[uid]['msg_text'] = msg_text.message_id
+
         users[uid]['categories'], users[uid]['captions'], users[uid]['links_list'] = get_row(point)
 
     if callback.data in {'rooms', 'back', 'next'}:
-        await callback.message.delete()
-        if not users[uid].get('links_list') and not users[uid].get('captions'):
+        if users[uid]['links_list'] == [] or users[uid]['captions'] == []:
             await callback.message.answer('Нет информации для выбранного отеля\n\nВыберите другой отель',
                                           reply_markup=kb.points)
             return
+        await callback.message.delete()
         if callback.data == 'back':
             users[uid]['index'] -= 1
         elif callback.data == 'next':
             users[uid]['index'] += 1
 
         index = users[uid]['index']
+        # print(users[uid])
         media_group = [InputMediaPhoto(media=link) for link in users[uid]['links_list'][index]]
-
+        print(media_group, '\n\n')
         if users[uid].get('msg_photo'):
             try:
                 for msg_id in users[uid]['msg_photo']:
@@ -98,8 +105,9 @@ async def callback_handler(callback: CallbackQuery):
                 await bot.delete_message(callback.message.chat.id, users[uid]['msg_text'])
             except Exception:
                 pass
-
+        print(index, users[uid]['categories'][index], '\n\n')
         text = users[uid]['categories'][index] + '\n\n' + users[uid]['captions'][index]
+        print(text)
         msg_photo = await callback.message.answer_media_group(media_group)
         msg_text = await callback.message.answer(text, reply_markup=kb.pagination(index, len(users[uid]['captions']),
                                                                                   users[uid]['point']))
