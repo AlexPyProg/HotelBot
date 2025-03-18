@@ -139,3 +139,4 @@ async def callback_handler(callback: CallbackQuery):
 
 async def main():
     await dp.start_polling(bot)
+    
