@@ -11,7 +11,7 @@ creds = Credentials.from_service_account_file(CREDS_FILE, scopes=SCOPES)
 client = gspread.authorize(creds)
 
 
-def get_row(sheet_name):
+def get_row(sheet_name: str):
     sheet = client.open_by_key(SHEET_ID).worksheet(sheet_name)
     data = sheet.get_all_values()
     data = data[2:]
@@ -39,5 +39,5 @@ def transform_google_drive_link(link: str) -> str:
     match = re.search(r"https://drive\.google\.com/file/d/([^/]+)/view", link)
     if match:
         file_id = match.group(1)
-        return f"https://drive.google.com/uc?export=view&id={file_id}"
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
     return link

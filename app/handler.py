@@ -94,7 +94,7 @@ async def callback_handler(callback: CallbackQuery):
         index = users[uid]['index']
         # print(users[uid])
         media_group = [InputMediaPhoto(media=link) for link in users[uid]['links_list'][index]]
-        print(media_group, '\n\n')
+        # print(media_group, '\n\n')
         if users[uid].get('msg_photo'):
             try:
                 for msg_id in users[uid]['msg_photo']:
@@ -106,15 +106,20 @@ async def callback_handler(callback: CallbackQuery):
                 await bot.delete_message(callback.message.chat.id, users[uid]['msg_text'])
             except Exception:
                 pass
-        print(index, users[uid]['categories'][index], '\n\n')
+        # print(index, users[uid]['categories'][index], '\n\n')
         text = users[uid]['categories'][index] + '\n\n' + users[uid]['captions'][index]
-        print(text)
-        msg_photo = await callback.message.answer_media_group(media_group)
+        # print(text)
+        try:
+            msg_photo = await callback.message.answer_media_group(media_group)
+        except TelegramBadRequest as e:
+            print(e)
+            msg_photo = await callback.message.answer_media_group([InputMediaPhoto(
+                media=FSInputFile(path=r'C:\Users\Александр\PycharmProjects\HotelBot\app\static\logo.png'))])
         msg_text = await callback.message.answer(text, reply_markup=kb.pagination(index, len(users[uid]['captions']),
                                                                                   users[uid]['point']))
 
-        users[uid]['msg_photo'] = [msg.message_id for msg in msg_photo] if msg_photo else []
         users[uid]['msg_text'] = msg_text.message_id
+        users[uid]['msg_photo'] = [msg.message_id for msg in msg_photo] if msg_photo else []
 
     elif callback.data == 'geo':
         lat, lon = locations[users[uid]['point']].split()
